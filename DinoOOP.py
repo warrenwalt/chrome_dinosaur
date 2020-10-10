@@ -3,10 +3,32 @@ import pygame
 
 class Dinosaur:
     """:except
-        This will be the player. The dinosaur will be moving forward
-        as it jumps cactus, in an attempt to reach the highest score possible
-        scores are awarded when dinosaur successfully jumps over a cactus without touching the cactus.
+        Thi s will be the player. The dinosaur will be moving forward
+        as    it jumps cactus, in an attempt to reach the highest score possible
+        s cores are awarded when dinosaur successfully jumps over a cactus without touching the cactus.
     """
+
+    # images for running
+    run = ["Run (1).png", "Run (2).png", "Run (3).png", "Run (4).png", "Run (5).png", "Run (6).png", "Run (7).png",
+           "Run (8).png"]
+    walkCount = 0
+    dino_run = []
+    for i in range(len(run)):
+        dino_run.append(pygame.transform.scale(pygame.image.load("images/running/" + run[i]), (200, 150)))
+
+    # images for jumping
+    jump = ["Jump (1).png", "Jump (2).png", "Jump (3).png", "Jump (4).png", "Jump (9).png", "Jump (10).png",
+            "Jump (11).png", "Jump (12).png"]
+    dino_jump = []
+    for j in range(len(jump)):
+        dino_jump.append(pygame.transform.scale(pygame.image.load("images/jumping/" + jump[j]), (200, 150)))
+
+    # images for dying.
+    die = ['Dead (1).png', 'Dead (2).png', 'Dead (3).png', 'Dead (4).png', 'Dead (5).png', 'Dead (6).png',
+           'Dead (7).png', 'Dead (8).png']
+    dino_die = []
+    for d in range(len(die)):
+        dino_die.append(pygame.transform.scale(pygame.image.load("images/dead/"+die[d]), (200, 150)))
 
     def __init__(self, x, y):
         self.x = x
@@ -22,6 +44,7 @@ class Cactus:
         when player comes into contact with cactus, game ands(though there could be future changes for this, now we just
         keeping things simple)
     """
+    moving = 10
 
     def __init__(self, x, y):
         self.x = x
@@ -70,17 +93,16 @@ class Score:
         return score
 
     def change_score(self, din_right, cact_left, cact_top, din_bottom, din_left, cact_right):
-        bot_up_dist = din_bottom-cact_top
-        left_right_dist = din_right-cact_left
-        if din_left < cact_left and din_right > cact_right:  #
-            # check first if its directly below cactus
-            if bot_up_dist == 0:  # check if top of cactus and bottom of dinosaur have touched.
-                print("Game Over: top and bottom touched.")
-        elif left_right_dist == 0 and din_bottom > cact_top:  # check if right side of dinosaur has collided with
+        bot_up_dist = din_bottom - cact_top
+        left_right_dist = din_right - cact_left
+
+        if left_right_dist == 0 and din_bottom > cact_top:  # check if right side of dinosaur has collided with
             # left-side of cactus
             print("Game Over: sides Touched.")
+            return False
         else:
             self.text = str(int(self.text) + 5)
+            return True
         # if dist == 0:
         #     print("game Over")
         # else:
@@ -125,13 +147,16 @@ class App:
     def mainloop(self):
         m = 1
         v = 12
+        FPS = 64
+        clock = pygame.time.Clock()
         self.dimension()
         score = Score(900, 20)
         ground = Ground()
         cactus = Cactus(300, 428)
-        dinosaur = Dinosaur(550, 400)
+        dinosaur = Dinosaur(550, 370)
         background = Background().current
         while self.isGaming:
+            clock.tick(FPS)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.isGaming = False
@@ -154,7 +179,6 @@ class App:
                 if v < 0:
                     m = -1  # negative sign is added to counter negative velocity
 
-
                 # check if object has reached its original state.
                 if v == -13:
                     dinosaur.isJumping = False
@@ -164,18 +188,31 @@ class App:
                     m = 1
             # method for getting rect for dinosaur and cactus
 
-            score.change_score(dinosaur.x+dinosaur.WIDTH, cactus.x, cactus.y, dinosaur.y+dinosaur.HEIGHT, dinosaur.x,
-                               cactus.x+cactus.WIDTH)
-            cactus.move(10)
-            pygame.time.delay(15)
+            score.change_score(dinosaur.x + dinosaur.WIDTH, cactus.x, cactus.y, dinosaur.y + dinosaur.HEIGHT,
+                               dinosaur.x,
+                               cactus.x + cactus.WIDTH)
+            cactus.move(Cactus.moving)
             self.screen.fill(background)
             self.screen.blit(score.score(), (score.x, score.y))
             # pygame.draw.rect(self.screen, self.COLORS["GROUND"], [0, cactus.y, App().WIDTH, 5])
             pygame.draw.rect(self.screen, self.COLORS['GROUND'], [ground.X, ground.Y, ground.WIDTH, ground.HEIGHT])
-            pygame.draw.rect(self.screen, self.COLORS['BORDER_OF_OBJECT'], [dinosaur.x, dinosaur.y, dinosaur.WIDTH,
-                                                                            dinosaur.HEIGHT], 6)
+
+            # bliting the dinosaur
+            if dinosaur.isJumping:
+                self.screen.blit(Dinosaur.dino_jump[dinosaur.walkCount // 8], (dinosaur.x, dinosaur.y))
+            elif not score.change_score(dinosaur.x + dinosaur.WIDTH, cactus.x, cactus.y, dinosaur.y + dinosaur.HEIGHT,
+                                        dinosaur.x,
+                                        cactus.x + cactus.WIDTH):
+                self.screen.blit(Dinosaur.dino_die[dinosaur.walkCount // 8], (dinosaur.x, dinosaur.y))
+            else:
+                self.screen.blit(Dinosaur.dino_run[dinosaur.walkCount // 8], (dinosaur.x, dinosaur.y))
+            dinosaur.walkCount += 1
+            if dinosaur.walkCount + 1 > 64:
+                dinosaur.walkCount = 0
+
             pygame.draw.rect(self.screen, self.COLORS["CACTUS_COLOR"], [cactus.x, cactus.y, cactus.WIDTH,
                                                                         cactus.HEIGHT], 5)
+            pygame.time.delay(2)
             pygame.display.update()
 
         # close application correctly
